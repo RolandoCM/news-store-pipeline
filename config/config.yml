@@ -1,0 +1,11 @@
+storage:
+  hdfs:
+    host: localhost
+    port: 9000
+    user: hadoop
+    base_path: /data/news
+    formats:
+      - cold: "parquet"
+      - archive: "avro"
+    compresison: "snappy"
+    replication: 3

@@ -3,7 +3,7 @@ pydantic>=1.10.0
 pyarrow>=10.0.0
 happybase>=1.2.0
 hdfs>=2.7.0
-kafka-python>=2.0.0
+kafka-python>=2.2.15
 fastavro>=1.0.0
 
 # Utilities

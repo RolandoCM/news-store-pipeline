@@ -19,7 +19,7 @@ storage:
     block_cache: true
     bloom_filter: true
 
-  retenrion:
+  retention:
     hot_data_days: 7
     warm_data_days: 30
     cold_data_days: 365
@@ -29,15 +29,15 @@ storage:
     max_workers: 4
     timeout: 30
   
-  logging:
-    level: INFO
-  kafka:
-    bootstrap_servers: localhost:9092
-    topic:
-      - raw_news
-      - processed_news
-    group_id: news_storage_consumer
+logging:
+  level: INFO
+kafka:
+  bootstrap_servers: "192.168.100.2:9092"
+  topics:
+    - "raw-news"
+    - "processed-news"
+  group_id: "news_storage_consumer"
   
-  monitoring:
-    prometheus_port: 8000
-    log_level: INFO
+monitoring:
+  prometheus_port: 8000
+  log_level: INFO

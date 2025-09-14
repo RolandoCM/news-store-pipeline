@@ -12,4 +12,4 @@ class NewsArticle(BaseModel):
     published_at: datetime
     category: Optional[str] = None
     language: str
-    tags: List[str] = Field(default_factory=list)
+    tags:List = Field(default_factory=list)

@@ -1,0 +1,77 @@
+from pyspark.sql import SparkSession
+from pyspark.sql.functions import col
+from src.com.itquetzali.news.models.metrics_model import MetricsModel
+from datetime import datetime  
+import logging
+
+logger = logging.getLogger(__name__)
+
+class IcebergConnector:
+    def __init__(self, spark: SparkSession, config: dict):
+        self.spark = spark
+        self.config = config
+        self._setup_iceberg_config()
+        self._create_table_if_not_exists()
+
+    def _setup_iceberg_config(self):
+        """spark config for iceberg"""
+        #self.spark.conf.set("spark.sql.catalog.news_catalog", self.config["iceberg"]["catalog_impl"])
+        #self.spark.conf.set("spark.sql.catalog.news_catalog.werehouse", self.config["iceberg"]["warehouse_path"])
+        #self.spark.conf.set("spark.sql.extensions", "org.apache.iceberg.spark.extensions.IcebergSparkSessionExtensions")
+
+        # S3 configuration if using S3
+        if self.config['iceberg']['warehouse_path'].startswith('s3'):
+            self.spark.conf.set("spark.sql.catalog.news_catalog.io-impl", "org.apache.iceberg.aws.s3.S3FileIO")
+            self.spark.conf.set("spark.hadoop.fs.s3a.endpoint", self.config['s3']['endpoint'])
+            self.spark.conf.set("spark.hadoop.fs.s3a.access.key", self.config['s3']['access_key'])
+            self.spark.conf.set("spark.hadoop.fs.s3a.secret.key", self.config['s3']['secret_key'])
+            self.spark.conf.set("spark.hadoop.fs.s3a.path.style.access", str(self.config['s3']['path_style_access']).lower())
+
+    def _create_table_if_not_exists(self):
+        logger.info("Checking if Iceberg table exists or needs to be created.")
+        try:
+            self.spark.sql("USE spark_catalog.news_catalog")
+            list = self.spark.catalog.listTables("news_catalog")
+            logger.info(f"Tables in news_catalog: {list}")
+            # check if table exists
+            tables = self.spark.sql("SHOW TABLES IN news_catalog")
+            table_exists = tables.filter(col("tableName") == self.config["iceberg"]["table_name"]).count() > 0
+
+            if not table_exists:
+                create_table_query = f"""
+                CREATE TABLE news_catalog.{self.config['iceberg']['table_name']} (
+                    title STRING,
+                    content STRING,
+                    sumary STRING,
+                    source STRING,
+                    author STRING,
+                    url STRING,
+                    published_at TIMESTAMP,
+                    category STRING,
+                    language STRING,
+                    tags ARRAY<STRING>
+                ) USING iceberg
+                PARTITIONED BY (days(published_at), category)
+                TBLPROPERTIES (
+                    'format-version'='2',
+                    'write.compression-codec'='${self.config['iceberg']['compression']}',
+                    'write,distribution-mode'='${self.config['iceberg']['write_distribution_mode']}'
+                )
+                """
+                self.spark.sql(create_table_query)
+                logger.info(f"Table {self.config['iceberg']['table_name']} created successfully.")
+            else:
+                logger.info(f"Table {self.config['iceberg']['table_name']} already exists.")
+        except Exception as e:
+            logger.error(f"Error creating table: {e}")
+            raise
+    def store_dataframe(self, df):
+        metrics = MetricsModel()
+        start_date = datetime.now()
+
+        try:
+            df.writeTo(f"news_catalog.{self.config['iceberg']['table_name']}").append()
+            logger.info(f"Data appended to table {self.config['iceberg']['table_name']} successfully.")
+        except Exception as e:
+            logger.error(f"Error writing to table: {e}")
+            raise

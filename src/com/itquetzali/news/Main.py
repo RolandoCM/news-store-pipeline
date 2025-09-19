@@ -1,7 +1,7 @@
 
 import logging
 import yaml
-from conntector.NewsProcessor import NewsProcessor
+from connector.NewsProcessor import NewsProcessor
 
 def setup_logging():
 
@@ -29,7 +29,8 @@ def main():
         logger.info("Configuration loaded successfully")
         
         processor = NewsProcessor(config)
-        processor.consume()
+    
+        #processor.consume()
     except Exception as e:
         logger.error(f"Error in main execution: {e}")  
     finally:
@@ -37,5 +38,6 @@ def main():
             processor.close()
             logger.info("Processor closed")
 
-if __name__ == "__main__":
+if __name__ == "__main__" and __package__ is None:
+    __package__ = "com.itquetzali.news"
     main()

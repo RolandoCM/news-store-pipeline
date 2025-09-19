@@ -1,8 +1,8 @@
 # Core dependencies
 pydantic>=1.10.0
 pyarrow>=10.0.0
-happybase>=1.2.0
-hdfs>=2.7.0
+happybase>=1.2.0 ## hbase client remove if not using HBase
+hdfs>=2.7.0  ## hdfs client remove if not using HDFS
 kafka-python>=2.2.15
 fastavro>=1.0.0
 
@@ -16,3 +16,12 @@ prometheus-client>=0.15.0
 
 # Async processing
 concurrent-log-handler>=0.9.0
+
+# iceberg
+pyiceberg>=0.3.0
+
+# cassandra
+cassandra-driver>=3.25.0
+
+# spark
+pyspark>=3.3.0

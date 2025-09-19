@@ -1,3 +1,65 @@
+spark:
+  app_name: NewsStoragePipeline
+  master: "local[]
+  executor_memory: 2g
+  driver_memory: 1g
+  sql_shuffle_partitions: 100
+  streaming_batch_interval: "10 seconds"
+
+
+iceberg:
+  catalog_name: news_catalog
+  warehouse_path: file:///data/iceberg_warehouse
+  table_name: news_table
+  format: parquet
+  compresison: "zstd"
+  partition_spec: ["days(published_at)", "category"]
+  write_distribution_mode: "hash"
+  catalog_impl: "org.apache.iceberg.aws.glue.GlueCatalog"
+   # For local testing use:
+  # catalog_impl: "org.apache.iceberg.hive.HiveCatalog"
+  # warehouse: "file:///tmp/iceberg-warehouse"
+
+# cassandra configuration
+cassandra:
+  host:
+    - "localhost"
+  port: 9042
+  keyspace: news_keyspace
+  table: news_articles
+  replication:
+    strategy: "SimpleStrategy"
+    replication_factor: 3
+  consistency_level: "LOCAL_QUORUM"
+# Kafka Configuration
+kafka:
+  bootstrap_servers: "localhost:9092"
+  topics: ["news-articles", "processed-news"]
+  group_id: "spark-news-consumer"
+  starting_offsets: "latest"
+
+# Data Retention
+retention:
+  hot_data_days: 7      # Cassandra
+  analytical_data_days: 365   # Iceberg
+
+# Enrichment Settings
+enrichment:
+  enabled: true
+  entities: true
+  sentiment: true
+  topics: true
+  keywords: true
+
+# S3 Configuration (if using S3 for Iceberg)
+s3:
+  endpoint: "http://localhost:9000"
+  access_key: "minioadmin"
+  secret_key: "minioadmin"
+  path_style_access: true
+
+
+## remove if not using HDFS and HBase
 storage:
   hdfs:
     host: localhost

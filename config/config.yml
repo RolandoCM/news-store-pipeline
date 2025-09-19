@@ -1,6 +1,6 @@
 spark:
   app_name: NewsStoragePipeline
-  master: "local[]
+  master: "local[*]"
   executor_memory: 2g
   driver_memory: 1g
   sql_shuffle_partitions: 100

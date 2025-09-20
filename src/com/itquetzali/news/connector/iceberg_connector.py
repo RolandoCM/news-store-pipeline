@@ -70,8 +70,18 @@ class IcebergConnector:
         start_date = datetime.now()
 
         try:
-            df.writeTo(f"news_catalog.{self.config['iceberg']['table_name']}").append()
+            df.write \
+                .format("iceberg") \
+                .mode("append") \
+                .save(f"news_catalog.{self.config['iceberg']['table_name']}")
+            
+            metrics.iceberg_count = df.count()
             logger.info(f"Data appended to table {self.config['iceberg']['table_name']} successfully.")
         except Exception as e:
             logger.error(f"Error writing to table: {e}")
-            raise
+        
+        metrics.total_articles = metrics.iceberg_count
+        metrics.processing_time_ms = (datetime.now() - start_date).total_seconds() * 1000
+        metrics.last_processed = datetime.now()
+        return metrics
+    

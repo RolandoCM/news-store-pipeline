@@ -88,7 +88,7 @@ class NewsProcessor:
                 logger.error(f"Error processing message: {e}")
     
     def _create_article(self, data: dict):
-        from com.itquetzali.news.models.NewsArticle import NewsArticle
+        from com.itquetzali.news.models.models import NewsArticle
         return NewsArticle(**data)
     
     def _process_batch(self, articles):
@@ -105,6 +105,23 @@ class NewsProcessor:
         for article in articles:
             if article.published_at >= cutoff_date:
                 hot_articles.append(article)
+
+    def query_articles(self, start_date: datetime, end_date: datetime) -> List:
+        pass
+
+    def compact_tables(self):
+        # Implement table compaction logic here
+        pass
+
+    def create_aggregations(self):
+        # Implement aggregation logic here
+        pass
+    def _get_schema(self):
+        pass
+    def get_table_info(self):
+        pass
+    
+
     def close(self):
         logger.info("Closing NewsProcessor")
         # Add any necessary cleanup code here

@@ -1,6 +1,6 @@
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import col
-from src.com.itquetzali.news.models.metrics_model import MetricsModel
+from src.com.itquetzali.news.models.models import MetricsModel
 from datetime import datetime  
 import logging
 

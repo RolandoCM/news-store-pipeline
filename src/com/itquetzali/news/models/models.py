@@ -3,7 +3,7 @@ from typing import List, Optional
 from datetime import datetime
 
 
-class ArticleCategory(BaseModel):
+"""class ArticleCategory(BaseModel):
     POLITICS = "politics"
     SPORTS = "sports"
     TECHNOLOGY = "technology"
@@ -12,11 +12,11 @@ class ArticleCategory(BaseModel):
     HEALTH = "health"
     SCIENCE = "science"
     GENERAL = "general"
-    OTHER = "other"
+    OTHER = "other"""
 class NewsArticle(BaseModel):
     title:str
     content:str
-    sumary:Optional[str] = None
+    summary:Optional[str] = None
     source: str
     author: Optional[str] = None
     url: str
@@ -24,6 +24,7 @@ class NewsArticle(BaseModel):
     category: Optional[str] = None
     language: str
     tags:List = Field(default_factory=list)
+    processing_timestamp: datetime = Field(default_factory=datetime.now)
 
     class Config:
         json_encoders = {

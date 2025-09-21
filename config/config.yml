@@ -103,3 +103,5 @@ kafka:
 monitoring:
   prometheus_port: 8000
   log_level: INFO
+maintenance:
+  interval_hours: 24

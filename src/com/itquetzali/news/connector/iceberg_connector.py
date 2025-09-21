@@ -1,6 +1,6 @@
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import col
-from src.com.itquetzali.news.models.models import MetricsModel
+from src.com.itquetzali.news.models.models import StorageMetrics
 from datetime import datetime  
 import logging
 
@@ -66,7 +66,7 @@ class IcebergConnector:
             logger.error(f"Error creating table: {e}")
             raise
     def store_dataframe(self, df):
-        metrics = MetricsModel()
+        metrics = StorageMetrics()
         start_date = datetime.now()
 
         try:

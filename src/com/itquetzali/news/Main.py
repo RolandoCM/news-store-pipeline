@@ -23,7 +23,7 @@ def load_config():
     with open('config/config.yml', 'r') as file:
         return yaml.safe_load(file)
 
-def mantenance_worker(processor: NewsProcessor, interval_hours: int = 24):
+def mantenance_worker(processor: SparkNewsProcessor, interval_hours: int = 24):
     """Perform periodic maintenance tasks."""
     while True:
         try:
@@ -50,13 +50,14 @@ def main():
     try:
         config = load_config()
         logger.info(f"Configuration loaded successfully: {config}")
-        
+        processorNews = NewsProcessor(config)
+        logger.info("NewsProcessor initialized successfully")   
         processor = SparkNewsProcessor(config)
         logger.info("SparkNewsProcessor initialized successfully")
 
         mantenance_thread = Thread( 
             target=mantenance_worker, 
-            args=(processor, config['maintenance_interval_hours']), 
+            args=(processor, config['maintenance']['interval_hours']), 
             daemon=True 
         )
         mantenance_thread.start()

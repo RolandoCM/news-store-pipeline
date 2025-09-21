@@ -5,3 +5,8 @@ class SparkNewsProcessor:
 
     def process_kafka_stream(self):
         pass    
+    def close(self):
+        pass
+
+    def compat_tables(self):
+        pass

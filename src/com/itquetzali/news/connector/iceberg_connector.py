@@ -1,5 +1,6 @@
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import col
+from pyiceberg.catalog import load_catalog
 from src.com.itquetzali.news.models.models import StorageMetrics
 from datetime import datetime  
 import logging
@@ -8,7 +9,6 @@ logger = logging.getLogger(__name__)
 
 class IcebergConnector:
     def __init__(self, spark: SparkSession, config: dict):
-        self.spark = spark
         self.config = config
         self._setup_iceberg_config()
         self._create_table_if_not_exists()
@@ -18,6 +18,14 @@ class IcebergConnector:
         #self.spark.conf.set("spark.sql.catalog.news_catalog", self.config["iceberg"]["catalog_impl"])
         #self.spark.conf.set("spark.sql.catalog.news_catalog.werehouse", self.config["iceberg"]["warehouse_path"])
         #self.spark.conf.set("spark.sql.extensions", "org.apache.iceberg.spark.extensions.IcebergSparkSessionExtensions")
+        #self.spark.conf.set("spark.sql.catalog.spark_catalog", "org.apache.iceberg.spark.SparkSessionCatalog")
+        self.spark = SparkSession.builder \
+            .appName("SparkIcebergExample") \
+            .config("spark.sql.catalog.spark_catalog", "org.apache.iceberg.spark.SparkCatalog") \
+            .config("spark.sql.catalog.spark_catalog.type", "hadoop") \
+            .config("spark.sql.catalog.spark_catalog.uri", "localhost:8181") \
+            .config("spark.sql.catalog.spark_catalog.warehouse", "file:///data/iceberg") \
+            .getOrCreate()
 
         # S3 configuration if using S3
         if self.config['iceberg']['warehouse_path'].startswith('s3'):
@@ -30,6 +38,8 @@ class IcebergConnector:
     def _create_table_if_not_exists(self):
         logger.info("Checking if Iceberg table exists or needs to be created.")
         try:
+            # Initialize a catalog
+            catalog = load_catalog(name="spark_catalog", uri="file:///data/iceberg")
             self.spark.sql("USE spark_catalog.news_catalog")
             list = self.spark.catalog.listTables("news_catalog")
             logger.info(f"Tables in news_catalog: {list}")

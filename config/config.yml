@@ -3,7 +3,7 @@ spark:
   master: "local[*]"
   executor_memory: 2g
   driver_memory: 1g
-  sql_shuffle_partitions: 100
+  shuffle_partitions: 100
   streaming_batch_interval: "10 seconds"
 
 
@@ -34,10 +34,9 @@ cassandra:
 # Kafka Configuration
 kafka:
   bootstrap_servers: "localhost:9092"
-  topics: ["news-articles", "processed-news"]
-  group_id: "spark-news-consumer"
-  starting_offsets: "latest"
-
+  topics: "raw_news"
+  group_id: "news_storage_consumer"
+  starting_offset: "latest" ##earliest"
 # Data Retention
 retention:
   hot_data_days: 7      # Cassandra
@@ -93,12 +92,6 @@ storage:
   
 logging:
   level: INFO
-kafka:
-  bootstrap_servers: "192.168.100.2:9092"
-  topics:
-    - "raw-news"
-    - "processed-news"
-  group_id: "news_storage_consumer"
   
 monitoring:
   prometheus_port: 8000

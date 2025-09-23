@@ -50,18 +50,18 @@ def main():
     try:
         config = load_config()
         logger.info(f"Configuration loaded successfully: {config}")
-        processorNews = NewsProcessor(config)
+        #processorNews = NewsProcessor(config)
         logger.info("NewsProcessor initialized successfully")   
         processor = SparkNewsProcessor(config)
         logger.info("SparkNewsProcessor initialized successfully")
 
-        mantenance_thread = Thread( 
+        """mantenance_thread = Thread( 
             target=mantenance_worker, 
             args=(processor, config['maintenance']['interval_hours']), 
             daemon=True 
         )
         mantenance_thread.start()
-        logger.info("Mantenance worker thread started")
+        logger.info("Mantenance worker thread started")"""
 
         logger.info("starting kafka message processing")
         processor.process_kafka_stream()

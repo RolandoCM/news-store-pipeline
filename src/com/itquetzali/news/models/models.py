@@ -14,13 +14,12 @@ from datetime import datetime
     GENERAL = "general"
     OTHER = "other"""
 class NewsArticle(BaseModel):
+    id: str
     title:str
-    content:str
-    summary:Optional[str] = None
-    source: str
+    description:str
     author: Optional[str] = None
     url: str
-    published_at: datetime
+    published: datetime
     category: Optional[str] = None
     language: str
     tags:List = Field(default_factory=list)

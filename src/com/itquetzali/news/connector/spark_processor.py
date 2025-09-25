@@ -1,8 +1,10 @@
 
 from pyspark.sql.types import StructType, StructField, StringType
 from pyspark.sql import SparkSession
-from pyspark.streaming import StreamingContext
+from pyspark.sql.functions import *
 import logging
+from datetime import datetime, timedelta
+from pyspark.sql.streaming import DataStreamReader, StreamingQuery
 
 logger = logging.getLogger(__name__)
 class SparkNewsProcessor:
@@ -17,14 +19,14 @@ class SparkNewsProcessor:
         self.schema = StructType([
             StructField("id", StringType(), True),
             StructField("title", StringType(), True),
-            StructField("content", StringType(), True),
+            StructField("description", StringType(), True),
             StructField("author", StringType(), True),
-            StructField("published_at", StringType(), True),
-            StructField("source", StringType(), True),
             StructField("url", StringType(), True),
+            StructField("published", StringType(), True),
             StructField("category", StringType(), True),
             StructField("language", StringType(), True),
-            StructField("country", StringType(), True)
+            StructField("tags", StringType(), True),
+            StructField("processing_timestamp", StringType(), True)
         ])
     def _create_spark_session(self) -> SparkSession:
         """Create and return a Spark session."""
@@ -43,41 +45,62 @@ class SparkNewsProcessor:
         #scc = StreamingContext(self.spark.sparkContext, self.config["spark"]["batch_interval"])
 
         try:
-            df = self.spark \
+            rdd = self.spark \
                 .readStream \
                 .format("kafka") \
                 .option("kafka.bootstrap.servers", self.config["kafka"]["bootstrap_servers"]) \
                 .option("subscribe", self.config["kafka"]["topics"]) \
                 .load()
-            # Cast 'key' and 'value' columns to STRING
-            df_string = df.selectExpr("CAST(key AS STRING)", "CAST(value AS STRING)")
-
-            # Now, df_string has 'key' and 'value' as StringType columns
-            df_string.printSchema()
-            query = df_string \
-                .writeStream \
-                .format("console") \
-                .option("truncate", "false") \
-                .option("numRows", 10) \
-                .start()
-            query.awaitTermination()
+            
             logger.info(f"Kafka stream created successfully.")
-            #self.sleep(100)
-            """KafkaUtils.createDirectStream(
-                scc,
-                [self.config["kafka"]["topic"]],
-                { "bootstrap.servers": self.config["kafka"]["bootstrap_servers"],
-                  "group.id": self.config["kafka"]["group_id"],
-                  "auto.offset.reset": self.config["kafka"]["starting_offset"]})
-            kafka_stream.foreachRDD(self.__process_rdd)
-            logger.info("Starting Kafka stream processing...")
-            scc.start()
-            scc.awaitTermination()"""
+            # Cast 'key' and 'value' columns to STRING
+            df_s = rdd.selectExpr("CAST(key AS STRING)", "CAST(value AS STRING)") \
+                .withColumn("data", from_json(col("value"), self.schema)) \
+                .select("key","data.*")
+            # Now, df_string has 'key' and 'value' as StringType columns
+            df = df_s \
+                .writeStream \
+                .foreachBatch(self.__process_rdd) \
+                .queryName("news_articles") \
+                .option("truncate", "false") \
+                .start()
+            df_s.printSchema()
+            df.awaitTermination()
         except Exception as e:
             logger.error(f"Error creating Kafka stream: {e}")
             raise
-        #finally:
+        finally:
+          df.stop()
             #scc.stop(stopSparkContext=True, stopGraceFully=True)
+    def __process_rdd(self, df, batch_id):
+        """Process each RDD from the Kafka stream."""
+        logger.info(f"Processing new RDD with batch ID: {batch_id}")
+        try:
+
+            if df.isEmpty():
+                logger.info("Received empty RDD, skipping processing.")
+                return
+            df.printSchema()
+            df.withColumn("processing_timestamp", current_timestamp())
+
+            if self.config["enrichment"]["enabled"]:
+                # Enrich data
+                pass
+            
+            # Determine storage based on time
+            cutoff_time = datetime.now() - timedelta(hours=self.config["retention"]["hot_data_days"])
+            cutoff_timestamp = lit(cutoff_time.isoformat())
+            
+            hot_data = df.filter(col("published") >= cutoff_timestamp)
+            analythics_data = df
+            ## call storage methods 
+            logger.info(f"processing batch with {analythics_data.count()} total records and {hot_data.count()} hot records")
+            
+        except Exception as e:
+            logger.error(f"Error processing RDD: {e}")
+            raise
+            
+
     def close(self):
         pass
 

@@ -64,7 +64,6 @@ class SparkNewsProcessor:
                 .queryName("news_articles") \
                 .option("truncate", "false") \
                 .start()
-            df_s.printSchema()
             df.awaitTermination()
         except Exception as e:
             logger.error(f"Error creating Kafka stream: {e}")

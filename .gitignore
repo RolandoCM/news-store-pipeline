@@ -1,3 +1,10 @@
 news_store_pipeline.log
 
 .venv/
+.idea/
+__pycache__/
+*.pyc
+.DS_Store
+.vscode/
+logs/
+data/

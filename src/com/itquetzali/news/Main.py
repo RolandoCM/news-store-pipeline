@@ -1,7 +1,7 @@
 
 import logging
 import yaml
-from connector.NewsProcessor import NewsProcessor
+
 from connector.spark_processor import SparkNewsProcessor
 from threading import Thread
 from time import sleep

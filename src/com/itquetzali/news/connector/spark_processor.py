@@ -4,6 +4,7 @@ from pyspark.sql import SparkSession
 from pyspark.sql.functions import *
 import logging
 from datetime import datetime, timedelta
+from src.com.itquetzali.news.connector.iceberg_connector import IcebergConnector
 
 logger = logging.getLogger(__name__)
 class SparkNewsProcessor:
@@ -38,7 +39,8 @@ class SparkNewsProcessor:
             .config("spark.cassandra.connection.host", self.config["cassandra"]["host"]) \
             .config("spark.cassandra.connection.port", self.config["cassandra"]["port"]) \
             .config("spark.jars.packages", "org.apache.spark:spark-sql-kafka-0-10_2.13:3.5.1," \
-            "com.datastax.spark:spark-cassandra-connector_2.13:3.5.1") \
+            "com.datastax.spark:spark-cassandra-connector_2.13:3.5.1," \
+            "org.apache.iceberg:iceberg-spark-runtime-3.5_2.13:1.10.0") \
             .getOrCreate()
     def process_kafka_stream(self):
         """Proess data from Kafka stream."""
@@ -94,6 +96,9 @@ class SparkNewsProcessor:
             ## call storage methods 
             self.__write_to_cassandra(hot_data)
             logger.info(f"processing batch with {analythics_data.count()} total records and {hot_data.count()} hot records")
+            iceberg = IcebergConnector(self.config, self.schema)
+            #iceberg.store_dataframe(analythics_data)
+            logger.info(f"Batch ID {batch_id} processed successfully.") 
             
         except Exception as e:
             logger.error(f"Error processing RDD: {e}")
@@ -115,6 +120,10 @@ class SparkNewsProcessor:
         except Exception as e:
             logger.error(f"Error writing to Cassandra: {e}")
             raise
+
+    def __store_in_iceberg(self, df):
+        """Store data in iceberg."""
+        pass
     def close(self):
         pass
 

@@ -14,97 +14,94 @@ RUN apt-get update && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
-## Download spark and hadoop dependencies and install
-
-# ENV variables
-ENV SPARK_VERSION=3.5.5
-
-ENV SPARK_HOME=${SPARK_HOME:-"/opt/spark"}
-ENV HADOOP_HOME=${HADOOP_HOME:-"/opt/hadoop"}
-
-ENV SPARK_MASTER_PORT=7077
-ENV SPARK_MASTER_HOST=spark-master
-ENV SPARK_MASTER="spark://$SPARK_MASTER_HOST:$SPARK_MASTER_PORT"
-
-ENV PYTHONPATH=$SPARK_HOME/python/:$PYTHONPATH
-ENV PYSPARK_PYTHON=python3
-
-# Add iceberg spark runtime jar to IJava classpath
-ENV IJAVA_CLASSPATH=/opt/spark/jars/*
-
-RUN mkdir -p ${HADOOP_HOME} && mkdir -p ${SPARK_HOME}
-WORKDIR ${SPARK_HOME}
-
-# Download spark
-# see resources: https://dlcdn.apache.org/spark/spark-3.5.5/
-# filename: spark-3.5.5-bin-hadoop3.tgz 
-RUN mkdir -p ${SPARK_HOME} \
-    && curl https://dlcdn.apache.org/spark/spark-${SPARK_VERSION}/spark-${SPARK_VERSION}-bin-hadoop3.tgz -o spark-${SPARK_VERSION}-bin-hadoop3.tgz \
-    && tar xvzf spark-${SPARK_VERSION}-bin-hadoop3.tgz --directory ${SPARK_HOME} --strip-components 1 \
-    && rm -rf spark-${SPARK_VERSION}-bin-hadoop3.tgz
-
-# Add spark binaries to shell and enable execution
-RUN chmod u+x /opt/spark/sbin/* && \
-    chmod u+x /opt/spark/bin/*
-ENV PATH="$PATH:$SPARK_HOME/bin:$SPARK_HOME/sbin"
-
-# Add a spark config for all nodes
-COPY config/spark-defaults.conf "$SPARK_HOME/conf/"
-
-
-FROM spark-base AS pyspark
-
-# Install python deps
+# Install Jupyter and other python deps
 COPY requirements.txt .
 RUN pip3 install -r requirements.txt
 
+# Add scala kernel via spylon-kernel
+#RUN python3 -m spylon_kernel install
 
-FROM pyspark AS pyspark-runner
+# Optional env variables
+#ENV SPARK_HOME=${SPARK_HOME:-"/opt/spark"}
+#ENV PYTHONPATH=$SPARK_HOME/python:$SPARK_HOME/python/lib/py4j-0.10.9.7-src.zip:$PYTHONPATH
+
+#WORKDIR ${SPARK_HOME}
+
+ENV SPARK_VERSION=3.5.6
+ENV SPARK_MAJOR_VERSION=3.5
+ENV ICEBERG_VERSION=1.9.0
+
+# Download spark
+#RUN mkdir -p ${SPARK_HOME} \
+# && curl https://dlcdn.apache.org/spark/spark-${SPARK_VERSION}/spark-${SPARK_VERSION}-bin-hadoop3.tgz -o spark-${SPARK_VERSION}-bin-hadoop3.tgz \
+# && tar xvzf spark-${SPARK_VERSION}-bin-hadoop3.tgz --directory /opt/spark --strip-components 1 \
+# && rm -rf spark-${SPARK_VERSION}-bin-hadoop3.tgz
 
 # Download iceberg spark runtime
-RUN curl https://repo1.maven.org/maven2/org/apache/iceberg/iceberg-spark-runtime-3.4_2.12/1.4.3/iceberg-spark-runtime-3.4_2.12-1.4.3.jar -Lo /opt/spark/jars/iceberg-spark-runtime-3.4_2.12-1.4.3.jar
+#RUN curl https://repo1.maven.org/maven2/org/apache/iceberg/iceberg-spark-runtime-${SPARK_MAJOR_VERSION}_2.12/${ICEBERG_VERSION}/iceberg-spark-runtime-${SPARK_MAJOR_VERSION}_2.12-${ICEBERG_VERSION}.jar -Lo /opt/spark/jars/iceberg-spark-runtime-${SPARK_MAJOR_VERSION}_2.12-${ICEBERG_VERSION}.jar
 
-# Download delta jars
-RUN curl https://repo1.maven.org/maven2/io/delta/delta-core_2.12/2.4.0/delta-core_2.12-2.4.0.jar -Lo /opt/spark/jars/delta-core_2.12-2.4.0.jar
-RUN curl https://repo1.maven.org/maven2/io/delta/delta-spark_2.12/3.2.0/delta-spark_2.12-3.2.0.jar -Lo /opt/spark/jars/delta-spark_2.12-3.2.0.jar
-RUN curl https://repo1.maven.org/maven2/io/delta/delta-storage/3.2.0/delta-storage-3.2.0.jar -Lo /opt/spark/jars/delta-storage-3.2.0.jar
+# Download AWS bundle
+#RUN curl -s https://repo1.maven.org/maven2/org/apache/iceberg/iceberg-aws-bundle/${ICEBERG_VERSION}/iceberg-aws-bundle-${ICEBERG_VERSION}.jar -Lo /opt/spark/jars/iceberg-aws-bundle-${ICEBERG_VERSION}.jar
 
-# Download hudi jars
-RUN curl https://repo1.maven.org/maven2/org/apache/hudi/hudi-spark3-bundle_2.12/0.15.0/hudi-spark3-bundle_2.12-0.15.0.jar -Lo /opt/spark/jars/hudi-spark3-bundle_2.12-0.15.0.jar
+# Download GCP bundle
+#RUN curl -s https://repo1.maven.org/maven2/org/apache/iceberg/iceberg-gcp-bundle/${ICEBERG_VERSION}/iceberg-gcp-bundle-${ICEBERG_VERSION}.jar -Lo /opt/spark/jars/iceberg-gcp-bundle-${ICEBERG_VERSION}.jar
 
-COPY entrypoint.sh .
-RUN chmod u+x /opt/spark/entrypoint.sh
+# Download Azure bundle
+#RUN curl -s https://repo1.maven.org/maven2/org/apache/iceberg/iceberg-azure-bundle/${ICEBERG_VERSION}/iceberg-azure-bundle-${ICEBERG_VERSION}.jar -Lo /opt/spark/jars/iceberg-azure-bundle-${ICEBERG_VERSION}.jar
 
+# Install AWS CLI
+#RUN curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip" \
+# && unzip awscliv2.zip \
+# && sudo ./aws/install \
+# && rm awscliv2.zip \
+# && rm -rf aws/
 
-# Optionally install Jupyter
-# FROM pyspark-runner AS pyspark-jupyter
+RUN mkdir -p /home/iceberg/data \
+ && curl https://data.cityofnewyork.us/resource/tg4x-b46p.json > /home/iceberg/data/nyc_film_permits.json \
+ && curl https://d37ci6vzurychx.cloudfront.net/trip-data/yellow_tripdata_2022-04.parquet -o /home/iceberg/data/yellow_tripdata_2022-04.parquet \
+ && curl https://d37ci6vzurychx.cloudfront.net/trip-data/yellow_tripdata_2022-03.parquet -o /home/iceberg/data/yellow_tripdata_2022-03.parquet \
+ && curl https://d37ci6vzurychx.cloudfront.net/trip-data/yellow_tripdata_2022-02.parquet -o /home/iceberg/data/yellow_tripdata_2022-02.parquet \
+ && curl https://d37ci6vzurychx.cloudfront.net/trip-data/yellow_tripdata_2022-01.parquet -o /home/iceberg/data/yellow_tripdata_2022-01.parquet \
+ && curl https://d37ci6vzurychx.cloudfront.net/trip-data/yellow_tripdata_2021-12.parquet -o /home/iceberg/data/yellow_tripdata_2021-12.parquet \
+ && curl https://d37ci6vzurychx.cloudfront.net/trip-data/yellow_tripdata_2021-11.parquet -o /home/iceberg/data/yellow_tripdata_2021-11.parquet \
+ && curl https://d37ci6vzurychx.cloudfront.net/trip-data/yellow_tripdata_2021-10.parquet -o /home/iceberg/data/yellow_tripdata_2021-10.parquet \
+ && curl https://d37ci6vzurychx.cloudfront.net/trip-data/yellow_tripdata_2021-09.parquet -o /home/iceberg/data/yellow_tripdata_2021-09.parquet \
+ && curl https://d37ci6vzurychx.cloudfront.net/trip-data/yellow_tripdata_2021-08.parquet -o /home/iceberg/data/yellow_tripdata_2021-08.parquet \
+ && curl https://d37ci6vzurychx.cloudfront.net/trip-data/yellow_tripdata_2021-07.parquet -o /home/iceberg/data/yellow_tripdata_2021-07.parquet \
+ && curl https://d37ci6vzurychx.cloudfront.net/trip-data/yellow_tripdata_2021-06.parquet -o /home/iceberg/data/yellow_tripdata_2021-06.parquet \
+ && curl https://d37ci6vzurychx.cloudfront.net/trip-data/yellow_tripdata_2021-05.parquet -o /home/iceberg/data/yellow_tripdata_2021-05.parquet \
+ && curl https://d37ci6vzurychx.cloudfront.net/trip-data/yellow_tripdata_2021-04.parquet -o /home/iceberg/data/yellow_tripdata_2021-04.parquet
 
-# RUN pip3 install notebook
+#RUN mkdir -p /home/iceberg/localwarehouse /home/iceberg/notebooks /home/iceberg/warehouse /home/iceberg/spark-events /home/iceberg
+#COPY notebooks/ /home/iceberg/notebooks
 
-# ENV JUPYTER_PORT=8889
+# Add a notebook command
+#RUN echo '#! /bin/sh' >> /bin/notebook \
+# && echo 'export PYSPARK_DRIVER_PYTHON=jupyter-notebook' >> /bin/notebook \
+# && echo "export PYSPARK_DRIVER_PYTHON_OPTS=\"--notebook-dir=/home/iceberg/notebooks --ip='*' --NotebookApp.token='' --NotebookApp.password='' --port=8888 --no-browser --allow-root\"" >> /bin/notebook \
+# && echo "pyspark" >> /bin/notebook \
+# && chmod u+x /bin/notebook
 
-# ENV PYSPARK_DRIVER_PYTHON=jupyter
-# ENV PYSPARK_DRIVER_PYTHON_OPTS="notebook --no-browser --allow-root --ip=0.0.0.0 --port=${JUPYTER_PORT}"
-# # --ip=0.0.0.0 - listen all interfaces
-# # --port=${JUPYTER_PORT} - listen ip on port 8889
-# # --allow-root - to run Jupyter in this container by root user. It is adviced to change the user to non-root.
+# Add a pyspark-notebook command (alias for notebook command for backwards-compatibility)
+#RUN echo '#! /bin/sh' >> /bin/pyspark-notebook \
+# && echo 'export PYSPARK_DRIVER_PYTHON=jupyter-notebook' >> /bin/pyspark-notebook \
+# && echo "export PYSPARK_DRIVER_PYTHON_OPTS=\"--notebook-dir=/home/iceberg/notebooks --ip='*' --NotebookApp.token='' --NotebookApp.password='' --port=8888 --no-browser --allow-root\"" >> /bin/pyspark-notebook \
+# && echo "pyspark" >> /bin/pyspark-notebook \
+# && chmod u+x /bin/pyspark-notebook
 
+#RUN mkdir -p /root/.ipython/profile_default/startup
+#COPY ipython/startup/00-prettytables.py /root/.ipython/profile_default/startup
+#COPY ipython/startup/README /root/.ipython/profile_default/startup
 
-ENTRYPOINT ["./entrypoint.sh"]
-CMD [ "bash" ]
+#COPY spark-defaults.conf /opt/spark/conf
+#ENV PATH="/opt/spark/sbin:/opt/spark/bin:${PATH}"
 
-# Now go to interactive shell mode
-# -$ docker exec -it spark-master /bin/bash 
-# then execute
-# -$ pyspark
+#RUN chmod u+x /opt/spark/sbin/* && \
+#    chmod u+x /opt/spark/bin/*
 
-# If Jupyter is installed, you will see an URL: `http://127.0.0.1:8889/?token=...`
-# This will open Jupyter web UI in your host machine browser.
-# Then go to /warehouse/ and test the installation.
+#COPY .pyiceberg.yaml /root/.pyiceberg.yaml
 
-FROM pyspark
-# Download iceberg spark runtime
-RUN curl https://repo1.maven.org/maven2/org/apache/iceberg/iceberg-spark-runtime-3.4_2.12/1.4.3/iceberg-spark-runtime-3.4_2.12-1.4.3.jar -Lo /opt/spark/jars/iceberg-spark-runtime-3.4_2.12-1.4.3.jar
+#COPY entrypoint.sh .
 
-# Add iceberg spark runtime jar to IJava classpath
-ENV IJAVA_CLASSPATH=/opt/spark/jars/*
+#ENTRYPOINT ["./entrypoint.sh"]
+#CMD ["notebook"]

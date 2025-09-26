@@ -90,9 +90,9 @@ class SparkNewsProcessor:
                 pass
             
             # Determine storage based on time
-            cutoff_time = datetime.now() - timedelta(hours=self.config["retention"]["hot_data_days"])
+            cutoff_time = datetime.now() - timedelta(days=self.config["retention"]["hot_data_days"])
             cutoff_timestamp = lit(cutoff_time.isoformat())
-            
+            logger.info(f"Cutoff timestamp for hot data: {cutoff_time.isoformat()}, hot data days: {self.config['retention']['hot_data_days']}, current time: {datetime.now().isoformat()} ")
             hot_data = df.filter(col("published") >= cutoff_timestamp)
             analythics_data = df
             ## call storage methods 
@@ -106,6 +106,10 @@ class SparkNewsProcessor:
     def __write_to_cassandra(self, df):
         """Store data in cassandra."""
         try:
+            if df.isEmpty():
+                logger.info("No hot data to write to Cassandra.")
+                return
+
             df.write \
                 .format("org.apache.spark.sql.cassandra") \
                 .options(table=self.config["cassandra"]["table"], keyspace=self.config["cassandra"]["keyspace"]) \

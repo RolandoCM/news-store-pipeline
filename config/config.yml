@@ -22,8 +22,7 @@ iceberg:
 
 # cassandra configuration
 cassandra:
-  host:
-    - "localhost"
+  host: "localhost"
   port: 9042
   keyspace: news_keyspace
   table: news_articles

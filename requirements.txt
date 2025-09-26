@@ -21,7 +21,7 @@ concurrent-log-handler>=0.9.0
 pyiceberg>=0.3.0
 
 # cassandra
-cassandra-driver>=3.25.0
+cassandra-driver>=3.29.2
 
 # spark
-pyspark>=3.3.0
+pyspark>=3.5.0

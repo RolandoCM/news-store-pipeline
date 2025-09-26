@@ -38,7 +38,10 @@ class SparkNewsProcessor:
             .config("spark.sql.shuffle.partitions", self.config["spark"]["shuffle_partitions"]) \
             .config("spark.sql.adapive.enabled", "true") \
             .config("spark.sql.streaming.schemaInference", "true") \
-            .config("spark.jars.packages", "org.apache.spark:spark-sql-kafka-0-10_2.13:3.5.1") \
+            .config("spark.cassandra.connection.host", self.config["cassandra"]["host"]) \
+            .config("spark.cassandra.connection.port", self.config["cassandra"]["port"]) \
+            .config("spark.jars.packages", "org.apache.spark:spark-sql-kafka-0-10_2.13:3.5.1," \
+            "com.datastax.spark:spark-cassandra-connector_2.13:3.5.1") \
             .getOrCreate()
     def process_kafka_stream(self):
         """Proess data from Kafka stream."""
@@ -93,13 +96,25 @@ class SparkNewsProcessor:
             hot_data = df.filter(col("published") >= cutoff_timestamp)
             analythics_data = df
             ## call storage methods 
+            self.__write_to_cassandra(hot_data)
             logger.info(f"processing batch with {analythics_data.count()} total records and {hot_data.count()} hot records")
             
         except Exception as e:
             logger.error(f"Error processing RDD: {e}")
             raise
             
-
+    def __write_to_cassandra(self, df):
+        """Store data in cassandra."""
+        try:
+            df.write \
+                .format("org.apache.spark.sql.cassandra") \
+                .options(table=self.config["cassandra"]["table"], keyspace=self.config["cassandra"]["keyspace"]) \
+                .mode("append") \
+                .save()
+            logger.info("Data written to Cassandra successfully.")
+        except Exception as e:
+            logger.error(f"Error writing to Cassandra: {e}")
+            raise
     def close(self):
         pass
 

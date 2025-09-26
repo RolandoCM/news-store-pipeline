@@ -1,5 +1,5 @@
 
-
+"""deprecated: Cassandra connector for storing and retrieving news articles."""
 import logging
 from typing import List, Optional
 from cassandra.auth import PlainTextAuthProvider

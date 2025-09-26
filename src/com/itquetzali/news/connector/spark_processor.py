@@ -4,15 +4,12 @@ from pyspark.sql import SparkSession
 from pyspark.sql.functions import *
 import logging
 from datetime import datetime, timedelta
-from pyspark.sql.streaming import DataStreamReader, StreamingQuery
 
 logger = logging.getLogger(__name__)
 class SparkNewsProcessor:
     def __init__(self, config:dict):
         self.config = config
         self.spark = self._create_spark_session()
-        #self.casandra_client = self._create_casandra_client(config)
-        #self.iceberg_client = self._create_iceberg_client(self.spark, config)
         
         ## create enricher
 
@@ -45,7 +42,6 @@ class SparkNewsProcessor:
             .getOrCreate()
     def process_kafka_stream(self):
         """Proess data from Kafka stream."""
-        #scc = StreamingContext(self.spark.sparkContext, self.config["spark"]["batch_interval"])
 
         try:
             rdd = self.spark \

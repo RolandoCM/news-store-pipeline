@@ -1,4 +1,5 @@
 
+"""deprecated: HBase connector for storing and retrieving news articles."""
 import logging
 import happybase
 
